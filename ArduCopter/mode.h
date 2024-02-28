@@ -1979,14 +1979,22 @@ public:
     using Mode::Mode;
     Number mode_number() const override { return Number::QBPLANE; }
 
+    enum class AcroOptions {
+            AIR_MODE = 1 << 0,
+            RATE_LOOP_ONLY = 1 << 1,
+        };
+
     virtual void run() override;
 
     bool requires_GPS() const override { return false; }
     bool has_manual_throttle() const override { return true; }
     bool allows_arming(AP_Arming::Method method) const override { return true; };
     bool is_autopilot() const override { return false; }
+    bool init(bool ignore_checks) override;
+    void exit() override;
+    // whether an air-mode aux switch has been toggled
+    void air_mode_aux_changed();
     bool allows_save_trim() const override { return true; }
-    bool allows_autotune() const override { return true; }
     bool allows_flip() const override { return true; }
 
 protected:
@@ -1994,7 +2002,12 @@ protected:
     const char *name() const override { return "QBPLANE"; }
     const char *name4() const override { return "QBPL"; }
 
+    // get_pilot_desired_angle_rates - transform pilot's normalised roll pitch and yaw input into a desired lean angle rates
+    // inputs are -1 to 1 and the function returns desired angle rates in centi-degrees-per-second
+    void get_pilot_desired_angle_rates(float roll_in, float pitch_in, float yaw_in, float &roll_out, float &pitch_out, float &yaw_out);
+
+    float throttle_hover() const override;
+
 private:
-
+    bool disable_air_mode_reset;
 };
-
