@@ -16,10 +16,10 @@ void ModeQbplane::run()
 	int16_t vft;
 	vft = cvft->get_radio_in();
 
-	if (vft < 1200) { // input from yaw stick -> roll; input from roll stick -> yaw
+	if (vft < 1200) { // input from yaw stick -> roll; input from roll stick -> yaw FORWARD
 		get_pilot_desired_angle_rates(channel_yaw->norm_input_dz(), channel_pitch->norm_input_dz(), channel_roll->norm_input_dz(), target_roll, target_pitch, target_yaw);
 	}
-	else {
+	else { // HOVER
 		get_pilot_desired_angle_rates(channel_roll->norm_input_dz(), channel_pitch->norm_input_dz(), channel_yaw->norm_input_dz(), target_roll, target_pitch, target_yaw);
 	}
 
@@ -70,7 +70,12 @@ void ModeQbplane::run()
 
 	// run attitude controller
 	if (g2.acro_options.get() & uint8_t(AcroOptions::RATE_LOOP_ONLY)) {
-		attitude_control->input_rate_bf_roll_pitch_yaw_2(target_roll, target_pitch, target_yaw);
+		if (vft < 1200) { // input from yaw stick -> roll; input from roll stick -> yaw FORWARD
+			attitude_control->input_rate_bf_roll_pitch_yaw_2(target_roll, target_pitch, -1.0f*target_yaw);
+		}
+		else { // HOVER
+			attitude_control->input_rate_bf_roll_pitch_yaw_2(target_roll, target_pitch, target_yaw);
+		}
 	} else {
 		attitude_control->input_rate_bf_roll_pitch_yaw(target_roll, target_pitch, target_yaw);
 	}
@@ -115,10 +120,8 @@ float ModeQbplane::throttle_hover() const
 void ModeQbplane::get_pilot_desired_angle_rates(float roll_in, float pitch_in, float yaw_in, float &roll_out, float &pitch_out, float &yaw_out)
 {
 	Vector3f rate_bf_request_cd;
-
 	// apply circular limit to pitch and roll inputs
 	float total_in = norm(pitch_in, roll_in);
-
 	if (total_in > 1.0) {
 		float ratio = 1.0 / total_in;
 		roll_in *= ratio;
@@ -126,13 +129,10 @@ void ModeQbplane::get_pilot_desired_angle_rates(float roll_in, float pitch_in, f
 	}
 
 	// calculate roll, pitch rate requests
-
 	// roll expo
 	rate_bf_request_cd.x = g2.command_model_acro_rp.get_rate() * 100.0 * input_expo(roll_in, g2.command_model_acro_rp.get_expo());
-
 	// pitch expo
 	rate_bf_request_cd.y = g2.command_model_acro_rp.get_rate() * 100.0 * input_expo(pitch_in, g2.command_model_acro_rp.get_expo());
-
 	// yaw expo
 	rate_bf_request_cd.z = g2.command_model_acro_y.get_rate() * 100.0 * input_expo(yaw_in, g2.command_model_acro_y.get_expo());
 

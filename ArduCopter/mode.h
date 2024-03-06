@@ -1979,6 +1979,12 @@ public:
     using Mode::Mode;
     Number mode_number() const override { return Number::QBPLANE; }
 
+    enum class Trainer {
+        OFF = 0,
+        LEVELING = 1,
+        LIMITED = 2,
+    };
+
     enum class AcroOptions {
             AIR_MODE = 1 << 0,
             RATE_LOOP_ONLY = 1 << 1,
